@@ -1,0 +1,230 @@
+<!doctype html> 
+<html lang="el"> 
+<head> 
+  <meta charset="UTF-8" />
+  <!-- Using this metatag users can't scale the page using pinchIn/out gestures on mobile devices -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+  <title>Αναγνώριση και αναπαραγωγή μοτίβου</title>  
+  <!-- TODO: "min.js" -->
+  <script src="https://code.createjs.com/1.0.0/createjs.js"></script>
+  <style type="text/css">
+    /* Remove margins and HTML scrollbars */
+    body, html  {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background-color: black;
+    }
+    #mainCanvas {
+    padding: 0;
+    margin: auto;
+    display: block;
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    }
+  </style>
+</head>
+
+<body onLoad="init();">
+  <canvas id="mainCanvas" width="320" height="180">
+    Your browser doesn't support HTML5!
+  </canvas>
+  <script>
+/*
+ Scaling requirements:
+ * I want to be able to support full screen.
+ * I don't to use a specific size like 800x600, because then even the fonts are
+   scaled!
+ * I want to rely on a 16:9 aspect ratio.
+ So, result:
+ * I resize the canvas on window.resize to fit the window while keeping 16:9.
+ * I resize/reposition everything manually.
+*/
+const ratio = 16/9;
+var gb = 4; // grid block size; of course same for x and y (square pixels)
+var stage, queue;
+var bg, text1, progressText;
+var contl, contr, contb;  // containers; left, right, bottom
+var boxl, boxr, boxb;  // rounded boxes; left, right, bottom
+var tiles = ['aquarela_colors', 'giraffe', 'pencil', 'mouse_on_cheese', 'mushroom_house', 'pencils_paper', 'pencils', 'white_cake', 'die_1', 'die_2', 'die_3', 'die_4', 'die_5', 'die_6', 'die_7', 'die_0',  'digital_die1', 'digital_die2', 'digital_die3', 'digital_die4', 'digital_die5', 'digital_die6', 'digital_die7', 'digital_die0'];
+var tilesl = [];
+var tilesr = [];
+var tilesb = [];
+
+function startPreload() {
+  manifest = [
+    { id: "bg", src: "resource/background.png" }
+  ]
+  for (var i=0; i<tiles.length; i++)
+    manifest.push({ id: "tile" + i, src: "resource/" + tiles[i] + ".png" })
+  console.log(manifest);
+  queue = new createjs.LoadQueue(true);
+  // TODO: preload.installPlugin(createjs.Sound);          
+  queue.on("fileload", handleFileLoad);
+  queue.on("progress", handleFileProgress);
+  queue.on("complete", loadComplete);
+  queue.on("error", loadError);
+  queue.loadManifest(manifest);
+}
+
+function handleFileLoad(event) {
+    console.log("A file has loaded of type: " + event.item.type);
+    if(event.item.id == "logo"){
+        console.log("Logo is loaded");
+        //create bitmap here
+    }
+}
+
+function loadError(evt) {
+    console.log("Error!",evt.text);
+}
+
+function handleFileProgress(event) {
+    progressText.text = (queue.progress*100|0) + " % Loaded";
+    stage.update();
+}
+ 
+function loadComplete(event) {
+  console.log("Finished Loading Assets");
+  bg = new createjs.Bitmap(queue.getResult("bg"));
+  stage.addChild(bg);
+
+  boxl = new createjs.Shape();
+  stage.addChild(boxl);
+  contl = new createjs.Container();
+  stage.addChild(contl);
+  for (i = 0; i < 8; i++) {
+    tilesl[i] = new createjs.Bitmap(queue.getResult("tile" + 3*i));
+    contl.addChild(tilesl[i]);
+  }
+
+  boxr = new createjs.Shape();
+  stage.addChild(boxr);
+  contr = new createjs.Container();
+  stage.addChild(contr);
+  for (i = 0; i < 8; i++) {
+    tilesr[i] = new createjs.Bitmap(queue.getResult("tile15"));
+    contr.addChild(tilesr[i]);
+  }
+
+  boxb = new createjs.Shape();
+  stage.addChild(boxb);
+  contb = new createjs.Container();
+  stage.addChild(contb);
+  for (i = 0; i < 8; i++) {
+    tilesb[i] = new createjs.Bitmap(queue.getResult("tile" + i));
+    contb.addChild(tilesb[i]);
+  }
+
+  text1 = new createjs.Text("", "20px Arial", "#ffff77");
+  text1.textBaseline = "alphabetic";
+  stage.addChild(text1);
+
+  resize();
+  window.addEventListener('resize', resize, false);
+  createjs.Ticker.addEventListener("tick", stage);
+}
+
+function init() {
+  console.clear();
+  stage = new createjs.Stage("mainCanvas");
+  progressText = new createjs.Text("Loading...", "30px Arial", "silver");
+  stage.addChild(progressText);
+  startPreload();
+  // The rest of the initialization happens in loadComplete()
+}
+
+// tilesArray, tileWidth, boxWidth
+function alignTiles(tilesA, tileW, boxW) {
+  // We do want at least one pixel spacing between the tiles
+  tilesPerRow = Math.floor(boxW/(tileW+1))
+  // If all tiles fit, use that number
+  tilesPerRow = Math.min(tilesA.length, tilesPerRow)
+  margin = (boxW - tileW*tilesPerRow) / (tilesPerRow-1)
+  console.log("margin="+margin+"tilesperrow="+tilesPerRow)
+  for (i = 0; i < tilesA.length; i++) {
+    tilesA[i].x = (margin+tileW) * (i % tilesPerRow);
+    tilesA[i].y = (margin+tileW) * Math.floor(i / tilesPerRow);
+    tilesA[i].scaleX = tileW / tilesA[i].image.width;
+    tilesA[i].scaleY = tileW / tilesA[i].image.height;
+  }
+}
+
+function resize() {
+  // TODO: to avoid rescaling all bitmaps... maybe extend with my own class?!
+
+  // Resize the canvas element
+  winratio = window.innerWidth/window.innerHeight;
+  if (winratio >= ratio) {
+    stage.canvas.height = window.innerHeight;
+    stage.canvas.width = stage.canvas.height * ratio;
+  } else {
+    stage.canvas.width = window.innerWidth;
+    stage.canvas.height = stage.canvas.width / ratio;
+  }
+
+  // Calculate the new Grid Block size
+  // TODO: maybe float gb, and not int gb, is actually better?
+  // gb = Math.min(Math.floor(stage.canvas.width / (gridx+1)), Math.floor(stage.canvas.height / (gridy+1)));
+  // We want to fit 8 tiles, and 1 for spacing.
+  htiles = 8;
+  gb = Math.floor(stage.canvas.width / (htiles+1));
+  space = stage.canvas.width - htiles*gb;
+
+  // Reference margin is a *float* that equals space devided by:
+  // 1+1+(4-1 tiles)+1+1+1+(4-1 tiles)+1+1 = 13
+  margin = space / 13;
+  boxl.x = margin;
+  boxl.y = margin;
+  boxl.alpha = 0.5;
+  boxl.graphics.clear();
+  boxl.graphics.beginStroke("#000");
+  boxl.graphics.setStrokeStyle(1);
+  boxl.graphics.beginFill("DeepSkyBlue").drawRoundRect(0, 0, 4*gb + 5*margin, 2*gb + 3*margin, margin);
+  contl.x = boxl.x + margin;
+  contl.y = boxl.y + margin;
+  alignTiles(tilesl, gb, 4*gb+3*margin);
+
+  boxr.x = 4*gb + 7*margin;
+  boxr.y = boxl.y;
+  boxr.alpha = 0.5;
+  boxr.graphics.clear();
+  boxr.graphics.beginStroke("#000");
+  boxr.graphics.setStrokeStyle(1);
+  boxr.graphics.beginFill("DarkTurquoise").drawRoundRect(0, 0, 4*gb + 5*margin, 2*gb + 3*margin, margin);
+  contr.x = boxr.x + margin;
+  contr.y = boxr.y + margin;
+  alignTiles(tilesr, gb, 4*gb+3*margin);
+
+  boxb.x = boxl.x;
+  boxb.y = 2*gb + 5*margin;
+  boxb.alpha = 0.5;
+  boxb.graphics.clear();
+  boxb.graphics.beginStroke("#000");
+  boxb.graphics.setStrokeStyle(1);
+  boxb.graphics.beginFill("Crimson").drawRoundRect(0, 0, 8*gb + 11*margin, 1*gb + 2*margin, margin);
+  contb.x = boxb.x + margin;
+  contb.y = boxb.y + margin;
+  alignTiles(tilesb, gb, 8*gb+9*margin);
+
+  text1.text = "Tile size: " + gb;
+  text1.x = margin;
+  text1.y = stage.canvas.height - margin;
+  text1.font = parseInt(gb/3) + "px Arial";
+
+  // Fill all the canvas
+  bg.scaleX = stage.canvas.width / bg.image.width;
+  bg.scaleY = stage.canvas.height / bg.image.height;
+  
+  stage.update();
+}
+
+function tick() {
+  stage.update();
+}
+  </script>
+</body>
+</html>
