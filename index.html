@@ -66,7 +66,7 @@ function startPreload() {
   ]
   for (var i=0; i<tiles.length; i++)
     manifest.push({ id: "tile" + i, src: "resource/" + tiles[i] + ".png" })
-  queue = new createjs.LoadQueue(preferXHR=false);
+  queue = new createjs.LoadQueue(preferXHR=true);
   // TODO: preload.installPlugin(createjs.Sound);          
   queue.on("fileload", handleFileLoad);
   queue.on("progress", handleFileProgress);
