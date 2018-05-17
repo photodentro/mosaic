@@ -156,17 +156,16 @@ function alignTiles(tilesA, tileW, boxW) {
   tilesPerRow = Math.min(tilesA.length, tilesPerRow)
   margin = (boxW - tileW*tilesPerRow) / (tilesPerRow-1)
   for (i = 0; i < tilesA.length; i++) {
-    tilesA[i].regX = tileW / 3;
-    tilesA[i].regY = tileW / 3;
-    tilesA[i].x = (margin+tileW) * (i % tilesPerRow) + tileW/2;
-    tilesA[i].y = (margin+tileW) * Math.floor(i / tilesPerRow) + tileW/2;
     tilesA[i].scaleX = tileW / tilesA[i].image.width;
     tilesA[i].scaleY = tileW / tilesA[i].image.height;
+    tilesA[i].regX = tilesA[i].image.width / 2;
+    tilesA[i].regY = tilesA[i].image.height / 2;
+    tilesA[i].x = (margin+tileW) * (i % tilesPerRow) + tilesA[i].scaleX*tilesA[i].regX;
+    tilesA[i].y = (margin+tileW) * Math.floor(i / tilesPerRow) + tilesA[i].scaleY*tilesA[i].regY;
     // These copies are used to preserve the original scale on mouseover
     tilesA[i].savedscaleX = tilesA[i].scaleX;
     tilesA[i].savedscaleY = tilesA[i].scaleY;
   }
-  console.log(tilesA[0]);
 }
 
 function resize() {
@@ -225,6 +224,7 @@ function resize() {
   contb.x = boxb.x + margin;
   contb.y = boxb.y + margin;
   alignTiles(tilesb, gb, 8*gb+9*margin);
+  console.log(tilesb[0]);
 
   text1.text = "Tile size: " + gb;
   text1.x = margin;
