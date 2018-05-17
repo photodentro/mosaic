@@ -1,4 +1,5 @@
 <!doctype html> 
+<!-- Copyright (C) 2018 Alkis Georgopoulos <alkisg@gmail.com>. License: GPLv3. -->
 <html lang="el"> 
 <head> 
   <meta charset="UTF-8" />
@@ -43,17 +44,21 @@
  * I resize the canvas on window.resize to fit the window while keeping 16:9.
  * I resize/reposition everything manually.
 */
+// TODO: create a game global object to avoid polluting the namespace
 const ratio = 16/9;
 var ts = 4; // Tile Size; of course same for x and y (square pixels)
 var stage, queue;
 var bg, text1, progressText;
 var contl, contr, contb;  // containers; left, right, bottom
 var boxl, boxr, boxb;  // rounded boxes; left, right, bottom
+var gridX, gridY;  // how many bitmaps in each top box
+var tilesNum; // = gridX * gridY
 var tiles = ['aquarela_colors', 'giraffe', 'pencil', 'mouse_on_cheese', 'mushroom_house', 'pencils_paper', 'pencils', 'white_cake', 'die_1', 'die_2', 'die_3', 'die_4', 'die_5', 'die_6', 'die_7', 'die_0',  'digital_die1', 'digital_die2', 'digital_die3', 'digital_die4', 'digital_die5', 'digital_die6', 'digital_die7', 'digital_die0'];
 var tilesl = [];
 var tilesr = [];
 var tilesb = [];
 var selectedTile;
+var level = 0;
 
 function startPreload() {
   manifest = [
@@ -61,7 +66,7 @@ function startPreload() {
   ]
   for (var i=0; i<tiles.length; i++)
     manifest.push({ id: "tile" + i, src: "resource/" + tiles[i] + ".png" })
-  queue = new createjs.LoadQueue(true);
+  queue = new createjs.LoadQueue(preferXHR=false);
   // TODO: preload.installPlugin(createjs.Sound);          
   queue.on("fileload", handleFileLoad);
   queue.on("progress", handleFileProgress);
@@ -96,8 +101,9 @@ function loadComplete(event) {
   stage.addChild(boxl);
   contl = new createjs.Container();
   stage.addChild(contl);
-  for (i = 0; i < 8; i++) {
-    tilesl[i] = new createjs.Bitmap(queue.getResult("tile" + 3*i));
+  for (i = 0; i < 24; i++) {
+    tilesl[i] = new createjs.Bitmap(queue.getResult("tile15"));
+    tilesl[i].visible = false;
     contl.addChild(tilesl[i]);
   }
 
@@ -105,11 +111,13 @@ function loadComplete(event) {
   stage.addChild(boxr);
   contr = new createjs.Container();
   stage.addChild(contr);
-  for (i = 0; i < 8; i++) {
+  for (i = 0; i < 24; i++) {
     tilesr[i] = new createjs.Bitmap(queue.getResult("tile15"));
+    tilesr[i].visible = false;
     tilesr[i].addEventListener("click", function(event) {
   if (selectedTile) {
     event.target.image = selectedTile.image;
+    checkEndGame();
     stage.update();
   }
 });
@@ -120,8 +128,9 @@ function loadComplete(event) {
   stage.addChild(boxb);
   contb = new createjs.Container();
   stage.addChild(contb);
-  for (i = 0; i < 8; i++) {
-    tilesb[i] = new createjs.Bitmap(queue.getResult("tile" + i));
+  for (i = 0; i < 24; i++) {
+    tilesb[i] = new createjs.Bitmap(queue.getResult("tile15"));
+    tilesb[i].visible = false;
     tilesb[i].addEventListener("click", function(event) {
   if (selectedTile)
     selectedTile.rotation = 0;
@@ -145,9 +154,10 @@ function loadComplete(event) {
   text1.textBaseline = "alphabetic";
   stage.addChild(text1);
 
-  resize();
+  initLevel();
   window.addEventListener('resize', resize, false);
   createjs.Ticker.on("tick", tick);
+  createjs.Ticker.framerate = 10;
 }
 
 function init() {
@@ -168,6 +178,10 @@ function alignTiles(tilesA, tileW, boxW) {
   tilesPerRow = Math.min(tilesA.length, tilesPerRow)
   margin = (boxW - tileW*tilesPerRow) / (tilesPerRow-1)
   for (i = 0; i < tilesA.length; i++) {
+    if (!tilesA[i].image) {
+      console.log(i)
+      console.log(tilesA)
+    }
     tilesA[i].scaleX = tileW / tilesA[i].image.width;
     tilesA[i].scaleY = tileW / tilesA[i].image.height;
     tilesA[i].regX = tilesA[i].image.width / 2;
@@ -192,53 +206,51 @@ function resize() {
   }
 
   // Calculate the new tile size
-  // We want to fit 8 tiles, and 1 for spacing.
-  htiles = 8;
-  ts = Math.floor(stage.canvas.width / (htiles+1));
-  space = stage.canvas.width - htiles*ts;
+  // We want to fit 2 boxes of gridX tiles, and 1 for spacing.
+  ts = Math.floor(stage.canvas.width / (2*gridX+1));
+  space = stage.canvas.width - 2*gridX*ts;
 
-  // Reference margin is a *float* that equals space devided by:
-  // 1+1+(4-1 tiles)+1+1+1+(4-1 tiles)+1+1 = 13
-  margin = space / 13;
+  // This depicts the spacing of the top boxes
+  margin = space / (1 + (1 + (gridX - 1) + 1) + 1 + (1 + (gridX - 1) + 1) + 1);
   boxl.x = margin;
   boxl.y = margin;
   boxl.alpha = 0.5;
   boxl.graphics.clear();
   boxl.graphics.beginStroke("#000");
   boxl.graphics.setStrokeStyle(1);
-  boxl.graphics.beginFill("DarkTurquoise").drawRoundRect(0, 0, 4*ts + 5*margin, 2*ts + 3*margin, margin);
+  boxl.graphics.beginFill("DarkTurquoise").drawRoundRect(0, 0, gridX*ts + (gridX+1)*margin, gridY*ts + (gridY+1)*margin, margin);
   contl.x = boxl.x + margin;
   contl.y = boxl.y + margin;
-  alignTiles(tilesl, ts, 4*ts+3*margin);
+  alignTiles(tilesl, ts, gridX*ts + (gridX-1)*margin);
 
-  boxr.x = 4*ts + 7*margin;
+  boxr.x = gridX*ts + (gridX+3)*margin;
   boxr.y = boxl.y;
   boxr.alpha = 0.5;
   boxr.graphics.clear();
   boxr.graphics.beginStroke("#000");
   boxr.graphics.setStrokeStyle(1);
-  boxr.graphics.beginFill("OrangeRed").drawRoundRect(0, 0, 4*ts + 5*margin, 2*ts + 3*margin, margin);
+  boxr.graphics.beginFill("OrangeRed").drawRoundRect(0, 0, gridX*ts + (gridX+1)*margin, gridY*ts + (gridY+1)*margin, margin);
   contr.x = boxr.x + margin;
   contr.y = boxr.y + margin;
-  alignTiles(tilesr, ts, 4*ts+3*margin);
+  alignTiles(tilesr, ts, gridX*ts + (gridX-1)*margin);
 
   boxb.x = boxl.x;
-  boxb.y = 2*ts + 5*margin;
+  boxb.y = gridY*ts + (gridY+3)*margin;
   boxb.alpha = 0.5;
   boxb.graphics.clear();
   boxb.graphics.beginStroke("#000");
   boxb.graphics.setStrokeStyle(1);
-  boxb.graphics.beginFill("DeepSkyBlue").drawRoundRect(0, 0, 8*ts + 11*margin, 1*ts + 2*margin, margin);
+  boxb.graphics.beginFill("DeepSkyBlue").drawRoundRect(0, 0, 2*gridX*ts + (2*gridX+3)*margin, (Math.floor(1+(tilesNum-1)/12))*ts + (Math.floor(2+(tilesNum-1)/12))*margin, margin);
   contb.x = boxb.x + margin;
   contb.y = boxb.y + margin;
-  alignTiles(tilesb, ts, 8*ts+9*margin);
+  alignTiles(tilesb, ts, 2*gridX*ts + (2*gridX+1)*margin);
 
-  text1.text = "Tile size: " + ts;
+  text1.text = "Level: " + (level + 1 ) + ", tilesNum = " + tilesNum + ", tilesSize: " + ts;
   text1.x = margin;
   text1.y = stage.canvas.height - margin;
-  text1.font = parseInt(ts/3) + "px Arial";
+  text1.font = parseInt(stage.canvas.height/20) + "px Arial";
 
-  // Fill all the canvas
+  // Fill all the canvas with the background
   bg.scaleX = stage.canvas.width / bg.image.width;
   bg.scaleY = stage.canvas.height / bg.image.height;
   
@@ -253,6 +265,62 @@ function tick() {
       dx = -dx;
   }
   stage.update();
+}
+
+function initLevel(newLevel=0) {
+  // Internal level number is zero-based; but we display it as 1-based.
+  // Levels:       0-1 2-3  4-5  6-7  8-9  10-11 12-13 14-15
+  // Top layouts:  3x2 4x2  5x2  6x2  5x3   6x3   5x4   6x4
+  // Bot layout:   6+0 8+0 10+0 12+0 12+3  12+6  12+8  12+12
+  // Tiles number:  6   8   10   12   15    18    20    24
+  // Max box sizes: left(6x4) right(6x4) bot(12x2)
+
+  var tilesNumArr = [6, 8, 10, 12, 15, 18, 21, 24];
+  var gridXArr = [3, 4, 5, 6, 5, 6, 7, 6];
+  var shuffle = [];
+
+  level = newLevel;
+  i = Math.floor(level/2)
+  tilesNum = tilesNumArr[i];
+  gridX = gridXArr[i];
+  gridY = tilesNum / gridX;
+
+  for (i = 0; i < 24; i++) {
+    tilesl[i].visible = i < tilesNum;
+    tilesr[i].visible = i < tilesNum;
+    tilesb[i].visible = i < tilesNum;
+  }
+  start = level % 4;
+  if (start + tilesNum > 24)
+    start = 0;
+  for (i = 0; i < tilesNum; i++) {
+     tilesb[i].image = queue.getResult("tile" + (start + i));
+     tilesr[i].image = queue.getResult("tile15");
+     shuffle[i] = start + i;
+  }
+  for (i = 0; i < tilesNum; i++) {
+    rand = Math.floor(Math.random() * tilesNum);
+    temp = shuffle[i];
+    shuffle[i] = shuffle[rand];
+    shuffle[rand] = temp;
+  }
+  for (i = 0; i < tilesNum; i++) {
+     tilesl[i].image = queue.getResult("tile" + shuffle[i]);
+  }
+  resize();
+  setTimeout("initLevel(" + (level+1) % 16 + ")", 10000);
+}
+
+function checkEndGame() {
+  var endGame = true;
+  for (i = 0; i < 3; i++) {
+    if (tilesr[i].image.src != tilesl[i].image.src)
+      endGame = false;
+  }
+  if (endGame)
+    text1.text = "Συγχαρητήρια! Τα κατάφερες!!!";
+  else
+    text1.text = "Tile size: " + ts;
 }
   </script>
 </body>
