@@ -44,7 +44,7 @@
  * I resize/reposition everything manually.
 */
 const ratio = 16/9;
-var gb = 4; // grid block size; of course same for x and y (square pixels)
+var ts = 4; // Tile Size; of course same for x and y (square pixels)
 var stage, queue;
 var bg, text1, progressText;
 var contl, contr, contb;  // containers; left, right, bottom
@@ -53,6 +53,7 @@ var tiles = ['aquarela_colors', 'giraffe', 'pencil', 'mouse_on_cheese', 'mushroo
 var tilesl = [];
 var tilesr = [];
 var tilesb = [];
+var selectedTile;
 
 function startPreload() {
   manifest = [
@@ -60,7 +61,6 @@ function startPreload() {
   ]
   for (var i=0; i<tiles.length; i++)
     manifest.push({ id: "tile" + i, src: "resource/" + tiles[i] + ".png" })
-  console.log(manifest);
   queue = new createjs.LoadQueue(true);
   // TODO: preload.installPlugin(createjs.Sound);          
   queue.on("fileload", handleFileLoad);
@@ -71,20 +71,20 @@ function startPreload() {
 }
 
 function handleFileLoad(event) {
-    console.log("A file has loaded of type: " + event.item.type);
-    if(event.item.id == "logo"){
-        console.log("Logo is loaded");
-        //create bitmap here
-    }
+  console.log("A file has loaded of type: " + event.item.type);
+  if(event.item.id == "logo"){
+    console.log("Logo is loaded");
+    //create bitmap here
+  }
 }
 
 function loadError(evt) {
-    console.log("Error!",evt.text);
+  console.log("Error!",evt.text);
 }
 
 function handleFileProgress(event) {
-    progressText.text = (queue.progress*100|0) + " % Loaded";
-    stage.update();
+  progressText.text = (queue.progress*100|0) + " % Loaded";
+  stage.update();
 }
  
 function loadComplete(event) {
@@ -107,6 +107,12 @@ function loadComplete(event) {
   stage.addChild(contr);
   for (i = 0; i < 8; i++) {
     tilesr[i] = new createjs.Bitmap(queue.getResult("tile15"));
+    tilesr[i].addEventListener("click", function(event) {
+  if (selectedTile) {
+    event.target.image = selectedTile.image;
+    stage.update();
+  }
+});
     contr.addChild(tilesr[i]);
   }
 
@@ -116,6 +122,12 @@ function loadComplete(event) {
   stage.addChild(contb);
   for (i = 0; i < 8; i++) {
     tilesb[i] = new createjs.Bitmap(queue.getResult("tile" + i));
+    tilesb[i].addEventListener("click", function(event) {
+  if (selectedTile)
+    selectedTile.rotation = 0;
+  selectedTile = event.target;
+  stage.update();
+});
     tilesb[i].addEventListener("mouseover", function(event) {
   event.target.scaleX = 1.2*event.target.savedscaleX;
   event.target.scaleY = 1.2*event.target.savedscaleY;
@@ -135,7 +147,7 @@ function loadComplete(event) {
 
   resize();
   window.addEventListener('resize', resize, false);
-  createjs.Ticker.addEventListener("tick", stage);
+  createjs.Ticker.on("tick", tick);
 }
 
 function init() {
@@ -169,8 +181,6 @@ function alignTiles(tilesA, tileW, boxW) {
 }
 
 function resize() {
-  // TODO: to avoid rescaling all bitmaps... maybe extend with my own class?!
-
   // Resize the canvas element
   winratio = window.innerWidth/window.innerHeight;
   if (winratio >= ratio) {
@@ -181,13 +191,11 @@ function resize() {
     stage.canvas.height = stage.canvas.width / ratio;
   }
 
-  // Calculate the new Grid Block size
-  // TODO: maybe float gb, and not int gb, is actually better?
-  // gb = Math.min(Math.floor(stage.canvas.width / (gridx+1)), Math.floor(stage.canvas.height / (gridy+1)));
+  // Calculate the new tile size
   // We want to fit 8 tiles, and 1 for spacing.
   htiles = 8;
-  gb = Math.floor(stage.canvas.width / (htiles+1));
-  space = stage.canvas.width - htiles*gb;
+  ts = Math.floor(stage.canvas.width / (htiles+1));
+  space = stage.canvas.width - htiles*ts;
 
   // Reference margin is a *float* that equals space devided by:
   // 1+1+(4-1 tiles)+1+1+1+(4-1 tiles)+1+1 = 13
@@ -198,38 +206,37 @@ function resize() {
   boxl.graphics.clear();
   boxl.graphics.beginStroke("#000");
   boxl.graphics.setStrokeStyle(1);
-  boxl.graphics.beginFill("DeepSkyBlue").drawRoundRect(0, 0, 4*gb + 5*margin, 2*gb + 3*margin, margin);
+  boxl.graphics.beginFill("DarkTurquoise").drawRoundRect(0, 0, 4*ts + 5*margin, 2*ts + 3*margin, margin);
   contl.x = boxl.x + margin;
   contl.y = boxl.y + margin;
-  alignTiles(tilesl, gb, 4*gb+3*margin);
+  alignTiles(tilesl, ts, 4*ts+3*margin);
 
-  boxr.x = 4*gb + 7*margin;
+  boxr.x = 4*ts + 7*margin;
   boxr.y = boxl.y;
   boxr.alpha = 0.5;
   boxr.graphics.clear();
   boxr.graphics.beginStroke("#000");
   boxr.graphics.setStrokeStyle(1);
-  boxr.graphics.beginFill("DarkTurquoise").drawRoundRect(0, 0, 4*gb + 5*margin, 2*gb + 3*margin, margin);
+  boxr.graphics.beginFill("OrangeRed").drawRoundRect(0, 0, 4*ts + 5*margin, 2*ts + 3*margin, margin);
   contr.x = boxr.x + margin;
   contr.y = boxr.y + margin;
-  alignTiles(tilesr, gb, 4*gb+3*margin);
+  alignTiles(tilesr, ts, 4*ts+3*margin);
 
   boxb.x = boxl.x;
-  boxb.y = 2*gb + 5*margin;
+  boxb.y = 2*ts + 5*margin;
   boxb.alpha = 0.5;
   boxb.graphics.clear();
   boxb.graphics.beginStroke("#000");
   boxb.graphics.setStrokeStyle(1);
-  boxb.graphics.beginFill("Crimson").drawRoundRect(0, 0, 8*gb + 11*margin, 1*gb + 2*margin, margin);
+  boxb.graphics.beginFill("DeepSkyBlue").drawRoundRect(0, 0, 8*ts + 11*margin, 1*ts + 2*margin, margin);
   contb.x = boxb.x + margin;
   contb.y = boxb.y + margin;
-  alignTiles(tilesb, gb, 8*gb+9*margin);
-  console.log(tilesb[0]);
+  alignTiles(tilesb, ts, 8*ts+9*margin);
 
-  text1.text = "Tile size: " + gb;
+  text1.text = "Tile size: " + ts;
   text1.x = margin;
   text1.y = stage.canvas.height - margin;
-  text1.font = parseInt(gb/3) + "px Arial";
+  text1.font = parseInt(ts/3) + "px Arial";
 
   // Fill all the canvas
   bg.scaleX = stage.canvas.width / bg.image.width;
@@ -238,7 +245,13 @@ function resize() {
   stage.update();
 }
 
+dx = 5;
 function tick() {
+  if (selectedTile) {
+    selectedTile.rotation += dx;
+    if (Math.abs(selectedTile.rotation) > 10)
+      dx = -dx;
+  }
   stage.update();
 }
   </script>
