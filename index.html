@@ -116,6 +116,16 @@ function loadComplete(event) {
   stage.addChild(contb);
   for (i = 0; i < 8; i++) {
     tilesb[i] = new createjs.Bitmap(queue.getResult("tile" + i));
+    tilesb[i].addEventListener("mouseover", function(event) {
+  event.target.scaleX = 1.2*event.target.savedscaleX;
+  event.target.scaleY = 1.2*event.target.savedscaleY;
+  stage.update();
+});
+    tilesb[i].addEventListener("mouseout", function(event) {
+  event.target.scaleX = event.target.savedscaleX;
+  event.target.scaleY = event.target.savedscaleY;
+  stage.update();
+});
     contb.addChild(tilesb[i]);
   }
 
@@ -131,6 +141,7 @@ function loadComplete(event) {
 function init() {
   console.clear();
   stage = new createjs.Stage("mainCanvas");
+  stage.enableMouseOver();
   progressText = new createjs.Text("Loading...", "30px Arial", "silver");
   stage.addChild(progressText);
   startPreload();
@@ -144,13 +155,18 @@ function alignTiles(tilesA, tileW, boxW) {
   // If all tiles fit, use that number
   tilesPerRow = Math.min(tilesA.length, tilesPerRow)
   margin = (boxW - tileW*tilesPerRow) / (tilesPerRow-1)
-  console.log("margin="+margin+"tilesperrow="+tilesPerRow)
   for (i = 0; i < tilesA.length; i++) {
-    tilesA[i].x = (margin+tileW) * (i % tilesPerRow);
-    tilesA[i].y = (margin+tileW) * Math.floor(i / tilesPerRow);
+    tilesA[i].regX = tileW / 3;
+    tilesA[i].regY = tileW / 3;
+    tilesA[i].x = (margin+tileW) * (i % tilesPerRow) + tileW/2;
+    tilesA[i].y = (margin+tileW) * Math.floor(i / tilesPerRow) + tileW/2;
     tilesA[i].scaleX = tileW / tilesA[i].image.width;
     tilesA[i].scaleY = tileW / tilesA[i].image.height;
+    // These copies are used to preserve the original scale on mouseover
+    tilesA[i].savedscaleX = tilesA[i].scaleX;
+    tilesA[i].savedscaleY = tilesA[i].scaleY;
   }
+  console.log(tilesA[0]);
 }
 
 function resize() {
