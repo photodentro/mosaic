@@ -6,8 +6,7 @@
   <!-- Using this metatag users can't scale the page using pinchIn/out gestures on mobile devices -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
   <title>Αναγνώριση και αναπαραγωγή μοτίβου</title>  
-  <!-- TODO: "https://code.createjs.com/1.0.0/createjs.min.js" -->
-  <script src="createjs.js"></script>
+  <script src="https://code.createjs.com/1.0.0/createjs.min.js"></script>
   <style type="text/css">
     /* Remove margins and HTML scrollbars */
     body, html  {
@@ -44,65 +43,77 @@
  * I resize the canvas on window.resize to fit the window while keeping 16:9.
  * I resize/reposition everything manually.
 */
-// TODO: create a game global object to avoid polluting the namespace
-const ratio = 16/9;
-var ts = 4; // Tile Size; of course same for x and y (square pixels)
-var stage, queue;
-var bg, text1, progressText;
+// TODO: create a game global object to avoid polluting the namespace?
+var stage;
+var bg;
 var contl, contr, contb;  // containers; left, right, bottom
 var boxl, boxr, boxb;  // rounded boxes; left, right, bottom
-var gridX, gridY;  // how many bitmaps in each top box
-var tilesNum; // = gridX * gridY
-var tiles = ['aquarela_colors', 'giraffe', 'pencil', 'mouse_on_cheese', 'mushroom_house', 'pencils_paper', 'pencils', 'white_cake', 'die_1', 'die_2', 'die_3', 'die_4', 'die_5', 'die_6', 'die_7', 'die_0',  'digital_die1', 'digital_die2', 'digital_die3', 'digital_die4', 'digital_die5', 'digital_die6', 'digital_die7', 'digital_die0'];
 var tilesl = [];
 var tilesr = [];
 var tilesb = [];
+var menubar = [];  // the menu bar buttons
+var statusText;
+var imgSuccess;
+const ratio = 16/9;
+var ts;  // Tile Size; of course same for x and y (square pixels)
+var gridX, gridY;  // how many bitmaps in each top box
+var tilesNum;  // = gridX * gridY
+// Put the tiles first so that we can get them by index more easily
+var resources = ['aquarela_colors', 'giraffe', 'pencil', 'mouse_on_cheese', 'mushroom_house', 'pencils_paper', 'pencils', 'white_cake', 'die_1', 'die_2', 'die_3', 'die_4', 'die_5', 'die_6', 'die_7', 'die_0',  'digital_die1', 'digital_die2', 'digital_die3', 'digital_die4', 'digital_die5', 'digital_die6', 'digital_die7', 'digital_die0', 'bar_help', 'bar_home', 'bar_previous', 'bar_next', 'flower_good', 'lion_good', 'background'];
+var queue;
 var selectedTile;
-var level = 0;
+var level;
+var endGame = false;
 
-function startPreload() {
-  manifest = [
-    { id: "bg", src: "resource/background.png" }
-  ]
-  for (var i=0; i<tiles.length; i++)
-    manifest.push({ id: "tile" + i, src: "resource/" + tiles[i] + ".png" })
-  queue = new createjs.LoadQueue(preferXHR=true);
-  // TODO: preload.installPlugin(createjs.Sound);          
-  queue.on("fileload", handleFileLoad);
-  queue.on("progress", handleFileProgress);
-  queue.on("complete", loadComplete);
+function init() {
+  console.clear();
+  stage = new createjs.Stage("mainCanvas");
+  stage.enableMouseOver();
+  statusText = new createjs.Text("Φόρτωση...", "20px Arial", "white");
+  statusText.textAlign = "center";
+  statusText.textBaseline = "middle";
+  stage.addChild(statusText);
+  resize(canvasOnly=true);
+
+  // Asset preloading
+  manifest = []
+  for (var i = 0; i < resources.length; i++)
+    manifest.push({ id: i, src: "resource/" + resources[i] + ".png" })
+  // The default preferXHR is true, but it prohibits things from being loaded:
+  // 1) In servers with Content-Security-Policy headers, and
+  // 2) In file:// URLs with google-chrome.
+  queue = new createjs.LoadQueue(preferXHR=false);
+  queue.on("progress", loadProgress);
   queue.on("error", loadError);
+  queue.on("complete", loadComplete);
   queue.loadManifest(manifest);
+
+  // The rest of the initialization happens in loadComplete()
 }
 
-function handleFileLoad(event) {
-  console.log("A file has loaded of type: " + event.item.type);
-  if(event.item.id == "logo"){
-    console.log("Logo is loaded");
-    //create bitmap here
-  }
-}
-
-function loadError(evt) {
-  console.log("Error!",evt.text);
-}
-
-function handleFileProgress(event) {
-  progressText.text = (queue.progress*100|0) + " % Loaded";
+function loadProgress(event) {
+  statusText.text = "Φόρτωση " + (queue.progress*100|0) + " %";
   stage.update();
 }
  
+function loadError(evt) {
+  statusText.text = "Σφάλμα φόρτωσης: " + evt.text;
+  stage.update();
+  console.log(statusText.text);
+}
+
 function loadComplete(event) {
-  console.log("Finished Loading Assets");
-  bg = new createjs.Bitmap(queue.getResult("bg"));
+  console.log("Finished loading resources");
+  bg = new createjs.Bitmap(queue.getResult("resource/background.png"));
   stage.addChild(bg);
 
   boxl = new createjs.Shape();
   stage.addChild(boxl);
   contl = new createjs.Container();
   stage.addChild(contl);
+  // We always initialize the max number of tiles = 24, and reuse them
   for (i = 0; i < 24; i++) {
-    tilesl[i] = new createjs.Bitmap(queue.getResult("tile15"));
+    tilesl[i] = new createjs.Bitmap(queue.getResult("resource/die_0.png"));
     tilesl[i].visible = false;
     contl.addChild(tilesl[i]);
   }
@@ -112,7 +123,7 @@ function loadComplete(event) {
   contr = new createjs.Container();
   stage.addChild(contr);
   for (i = 0; i < 24; i++) {
-    tilesr[i] = new createjs.Bitmap(queue.getResult("tile15"));
+    tilesr[i] = new createjs.Bitmap(queue.getResult("resource/die_0.png"));
     tilesr[i].visible = false;
     tilesr[i].addEventListener("click", function(event) {
   if (selectedTile) {
@@ -129,7 +140,7 @@ function loadComplete(event) {
   contb = new createjs.Container();
   stage.addChild(contb);
   for (i = 0; i < 24; i++) {
-    tilesb[i] = new createjs.Bitmap(queue.getResult("tile15"));
+    tilesb[i] = new createjs.Bitmap(queue.getResult("resource/die_0.png"));
     tilesb[i].visible = false;
     tilesb[i].addEventListener("click", function(event) {
   if (selectedTile)
@@ -138,6 +149,8 @@ function loadComplete(event) {
   stage.update();
 });
     tilesb[i].addEventListener("mouseover", function(event) {
+  // Bring the target on top in its container, mostly for the rotation animation
+  event.target.parent.setChildIndex(event.target, event.target.parent.numChildren - 1);
   event.target.scaleX = 1.2*event.target.savedscaleX;
   event.target.scaleY = 1.2*event.target.savedscaleY;
   stage.update();
@@ -150,24 +163,54 @@ function loadComplete(event) {
     contb.addChild(tilesb[i]);
   }
 
-  text1 = new createjs.Text("", "20px Arial", "#ffff77");
-  text1.textBaseline = "alphabetic";
-  stage.addChild(text1);
+  var onMenuClick = [onMenuHelp, onMenuHome, onMenuPrevious, onMenuNext];
+  for (i = 0; i < 4; i++) {
+    menubar[i] = new createjs.Bitmap(queue.getResult(24+i));
+    menubar[i].addEventListener("click", onMenuClick[i]);
+    menubar[i].addEventListener("mouseover", function(event) {
+  // Bring the target on top in its container, mostly for the rotation animation
+  event.target.parent.setChildIndex(event.target, event.target.parent.numChildren - 1);
+  event.target.scaleX = 1.2*event.target.savedscaleX;
+  event.target.scaleY = 1.2*event.target.savedscaleY;
+  stage.update();
+});
+    menubar[i].addEventListener("mouseout", function(event) {
+  event.target.scaleX = event.target.savedscaleX;
+  event.target.scaleY = event.target.savedscaleY;
+  stage.update();
+});
+    stage.addChild(menubar[i]);
+  }
+
+  imgSuccess = new createjs.Bitmap(queue.getResult(28));
+  imgSuccess.visible = false;
+  stage.addChild(imgSuccess);
+
+  // Bring statusText in front of everything
+  statusText.textAlign = "right";
+  statusText.textBaseline = "alphabetic";
+  stage.setChildIndex(statusText, stage.numChildren - 1);
 
   initLevel();
   window.addEventListener('resize', resize, false);
   createjs.Ticker.on("tick", tick);
-  createjs.Ticker.framerate = 10;
+  // createjs.Ticker.framerate = 10;
 }
 
-function init() {
-  console.clear();
-  stage = new createjs.Stage("mainCanvas");
-  stage.enableMouseOver();
-  progressText = new createjs.Text("Loading...", "30px Arial", "silver");
-  stage.addChild(progressText);
-  startPreload();
-  // The rest of the initialization happens in loadComplete()
+function onMenuHelp(event) {
+  alert("Επιλέξτε εικόνες από το κάτω κουτί και βάλτε τις στο δεξί κουτί έτσι ώστε να ταιριάζουν με το αριστερό κουτί.");
+}
+
+function onMenuHome(event) {
+  window.history.back();
+}
+
+function onMenuPrevious(event) {
+  initLevel((level+15) % 16);
+}
+
+function onMenuNext(event) {
+  initLevel((level+1) % 16);
 }
 
 // tilesArray, tileWidth, boxWidth
@@ -205,6 +248,13 @@ function resize() {
     stage.canvas.height = stage.canvas.width / ratio;
   }
 
+  // If loadComplete() hasn't been called yet, the rest of the items aren't available
+  if (!boxl) {
+    statusText.x = stage.canvas.width / 2;
+    statusText.y = stage.canvas.height / 2;
+    statusText.font = parseInt(stage.canvas.height/10) + "px Arial";
+    return;
+  }
   // Calculate the new tile size
   // We want to fit 2 boxes of gridX tiles, and 1 for spacing.
   ts = Math.floor(stage.canvas.width / (2*gridX+1));
@@ -245,10 +295,31 @@ function resize() {
   contb.y = boxb.y + margin;
   alignTiles(tilesb, ts, 2*gridX*ts + (2*gridX+1)*margin);
 
-  text1.text = "Level: " + (level + 1 ) + ", tilesNum = " + tilesNum + ", tilesSize: " + ts;
-  text1.x = margin;
-  text1.y = stage.canvas.height - margin;
-  text1.font = parseInt(stage.canvas.height/20) + "px Arial";
+  var bbs = stage.canvas.height / 10;  // bar button size
+  var bbm = bbs / 5;  // bar button margin
+  for (i = 0; i < 4; i++) {
+    menubar[i].scaleX = bbs / menubar[i].image.width;
+    menubar[i].scaleY = bbs / menubar[i].image.height;
+    menubar[i].regX = menubar[i].image.width / 2;
+    menubar[i].regY = menubar[i].image.height / 2;
+    menubar[i].x = (i + 1)*bbm + bbs/2 + i*bbs;
+    menubar[i].y = stage.canvas.height - bbm - bbs/2;
+    // These copies are used to preserve the original scale on mouseover
+    menubar[i].savedscaleX = menubar[i].scaleX;
+    menubar[i].savedscaleY = menubar[i].scaleY;
+  }
+
+  imgSuccess.scaleY = (2/3) * stage.canvas.height / imgSuccess.image.height;
+  imgSuccess.scaleX = imgSuccess.scaleY;
+  imgSuccess.regX = imgSuccess.image.width / 2;
+  imgSuccess.regY = imgSuccess.image.height / 2;
+  imgSuccess.x = stage.canvas.width / 2;
+  imgSuccess.y = stage.canvas.height / 2;
+
+  statusText.text = "Επίπεδο: " + (level + 1 ) + ", εικονίδια: " + tilesNum;
+  statusText.x = stage.canvas.width - bbm;
+  statusText.y = stage.canvas.height - bbm;
+  statusText.font = parseInt(bbs/2) + "px Arial";
 
   // Fill all the canvas with the background
   bg.scaleX = stage.canvas.width / bg.image.width;
@@ -259,7 +330,11 @@ function resize() {
 
 dx = 5;
 function tick() {
-  if (selectedTile) {
+  if (endGame) {
+     imgSuccess.scaleX *= 1.01;
+     imgSuccess.scaleY *= 1.01;
+  }
+  else if (selectedTile) {
     selectedTile.rotation += dx;
     if (Math.abs(selectedTile.rotation) > 10)
       dx = -dx;
@@ -294,8 +369,8 @@ function initLevel(newLevel=0) {
   if (start + tilesNum > 24)
     start = 0;
   for (i = 0; i < tilesNum; i++) {
-     tilesb[i].image = queue.getResult("tile" + (start + i));
-     tilesr[i].image = queue.getResult("tile15");
+     tilesb[i].image = queue.getResult(start + i);
+     tilesr[i].image = queue.getResult("resource/die_0.png");
      shuffle[i] = start + i;
   }
   for (i = 0; i < tilesNum; i++) {
@@ -305,22 +380,30 @@ function initLevel(newLevel=0) {
     shuffle[rand] = temp;
   }
   for (i = 0; i < tilesNum; i++) {
-     tilesl[i].image = queue.getResult("tile" + shuffle[i]);
+     tilesl[i].image = queue.getResult(shuffle[i]);
+  }
+
+  endGame = false;
+  imgSuccess.visible = false;
+  if (selectedTile) {
+    selectedTile.rotation = 0;
+    selectedTile = null;
   }
   resize();
-  setTimeout("initLevel(" + (level+1) % 16 + ")", 10000);
 }
 
 function checkEndGame() {
-  var endGame = true;
-  for (i = 0; i < 3; i++) {
+  endGame = true;
+  for (i = 0; i < tilesNum; i++) {
     if (tilesr[i].image.src != tilesl[i].image.src)
       endGame = false;
   }
-  if (endGame)
-    text1.text = "Συγχαρητήρια! Τα κατάφερες!!!";
-  else
-    text1.text = "Tile size: " + ts;
+  if (endGame) {
+    imgSuccess.visible = true;
+    statusText.text = "Συγχαρητήρια! Τα κατάφερες!!!";
+    setTimeout(onMenuNext, 3000);
+    stage.update();
+  }
 }
   </script>
 </body>
