@@ -52,7 +52,7 @@ var tilesl = [];
 var tilesr = [];
 var tilesb = [];
 var menubar = [];  // the menu bar buttons
-var statusText;
+var statusText, lvlText;
 var imgSuccess;
 const ratio = 16/9;
 var ts;  // Tile Size; of course same for x and y (square pixels)
@@ -106,6 +106,8 @@ function loadError(evt) {
 
 function loadComplete(event) {
   console.log("Finished loading resources");
+  // We only keep statusText for debugging; not visible in production builds
+  statusText.visible = false;
   bg = new createjs.Bitmap(queue.getResult("resource/background.png"));
   stage.addChild(bg);
 
@@ -183,6 +185,11 @@ function loadComplete(event) {
 });
     stage.addChild(menubar[i]);
   }
+
+  lvlText = new createjs.Text("1", "20px Arial", "white");
+  lvlText.textAlign = "center";
+  lvlText.textBaseline = "middle";
+  stage.addChild(lvlText);
 
   imgSuccess = new createjs.Bitmap(queue.getResult(29));
   imgSuccess.visible = false;
@@ -299,16 +306,33 @@ function resize() {
 
   var bbs = stage.canvas.height / 10;  // bar button size
   var bbm = bbs / 5;  // bar button margin
+  // TODO: local/global variables, eslint...
   for (i = 0; i < 4; i++) {
+    // Leave one space for the level
+    if (i < 3)
+      j = i;
+    else
+      j = i + 1;
     menubar[i].scaleX = bbs / menubar[i].image.width;
     menubar[i].scaleY = bbs / menubar[i].image.height;
     menubar[i].regX = menubar[i].image.width / 2;
     menubar[i].regY = menubar[i].image.height / 2;
-    menubar[i].x = (i + 1)*bbm + bbs/2 + i*bbs;
+    menubar[i].x = (j + 1)*bbm + bbs/2 + j*bbs;
     menubar[i].y = stage.canvas.height - bbm - bbs/2;
     // These copies are used to preserve the original scale on mouseover
     menubar[i].savedscaleX = menubar[i].scaleX;
     menubar[i].savedscaleY = menubar[i].scaleY;
+  }
+
+  lvlText.text = level + 1;
+  lvlText.x = (3 + 1)*bbm + bbs/2 + 3*bbs;
+  lvlText.y = stage.canvas.height - bbm/2 - bbs/2;
+  lvlText.font = parseInt(2*bbs/2) + "px Arial";
+
+  // If level is single digit, move lvlText and bar_previous a bit left
+  if (level + 1 < 10) {
+    lvlText.x -= bbs/4;
+    menubar[3].x -= bbs/2;
   }
 
   imgSuccess.scaleY = (2/3) * stage.canvas.height / imgSuccess.image.height;
@@ -403,7 +427,6 @@ function checkEndGame() {
   }
   if (endGame) {
     imgSuccess.visible = true;
-    statusText.text = "Συγχαρητήρια! Τα κατάφερες!!!";
     setTimeout(onMenuNext, 3000);
     stage.update();
   }
