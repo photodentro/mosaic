@@ -35,13 +35,13 @@
   <script>
 /*
  Scaling requirements:
- * I want to be able to support full screen.
- * I don't to use a specific size like 800x600, because then even the fonts are
-   scaled!
- * I want to rely on a 16:9 aspect ratio.
+ * We want to be able to support full screen.
+ * We don't want to use a specific size like 800x600, because then even the
+   fonts are scaled!
+ * We want to rely on a 16:9 aspect ratio.
  So, result:
- * I resize the canvas on window.resize to fit the window while keeping 16:9.
- * I resize/reposition everything manually.
+ * We resize the canvas on window.resize to fit the window while keeping 16:9.
+ * We resize/reposition everything manually.
 */
 // TODO: create a game global object to avoid polluting the namespace?
 var stage;
@@ -73,15 +73,16 @@ function init() {
   statusText.textAlign = "center";
   statusText.textBaseline = "middle";
   stage.addChild(statusText);
-  resize(canvasOnly=true);
+  resize();
 
-  // Asset preloading
+  // Resource preloading
   manifest = []
   for (var i = 0; i < resources.length; i++)
     manifest.push({ id: i, src: "resource/" + resources[i] + ".png" })
   // The default preferXHR is true, but it prohibits things from being loaded:
   // 1) In servers with Content-Security-Policy headers, and
   // 2) In file:// URLs with google-chrome.
+  // Well actually chrome needs --allow-file-access-from-files in all cases.
   queue = new createjs.LoadQueue(preferXHR=false);
   queue.stopOnError = true;
   queue.on("progress", loadProgress);
