@@ -83,6 +83,7 @@ function init() {
   // 1) In servers with Content-Security-Policy headers, and
   // 2) In file:// URLs with google-chrome.
   queue = new createjs.LoadQueue(preferXHR=false);
+  queue.stopOnError = true;
   queue.on("progress", loadProgress);
   queue.on("error", loadError);
   queue.on("complete", loadComplete);
@@ -97,9 +98,10 @@ function loadProgress(event) {
 }
  
 function loadError(evt) {
-  statusText.text = "Σφάλμα φόρτωσης: " + evt.text;
+  statusText.text = "Σφάλμα φόρτωσης, δοκιμάστε F5" + "\n" + evt.title + "\n" + (evt.message || evt.data.src);
   stage.update();
   console.log(statusText.text);
+  console.log(evt);
 }
 
 function loadComplete(event) {
