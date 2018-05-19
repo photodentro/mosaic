@@ -59,7 +59,7 @@ var ts;  // Tile Size; of course same for x and y (square pixels)
 var gridX, gridY;  // how many bitmaps in each top box
 var tilesNum;  // = gridX * gridY
 // Put the tiles first so that we can get them by index more easily
-var resources = ['aquarela_colors', 'giraffe', 'pencil', 'mouse_on_cheese', 'mushroom_house', 'pencils_paper', 'pencils', 'white_cake', 'die_1', 'die_2', 'die_3', 'die_4', 'die_5', 'die_6', 'die_7', 'die_0',  'digital_die1', 'digital_die2', 'digital_die3', 'digital_die4', 'digital_die5', 'digital_die6', 'digital_die7', 'digital_die0', 'bar_help', 'bar_home', 'bar_previous', 'bar_next', 'flower_good', 'lion_good', 'background'];
+var resources = ['aquarela_colors', 'giraffe', 'pencil', 'mouse_on_cheese', 'mushroom_house', 'pencils_paper', 'pencils', 'white_cake', 'die_1', 'die_2', 'die_3', 'die_4', 'die_5', 'die_6', 'die_7', 'die_0',  'digital_die1', 'digital_die2', 'digital_die3', 'digital_die4', 'digital_die5', 'digital_die6', 'digital_die7', 'digital_die0', 'bar_help', 'bar_home', 'bar_previous', 'bar_next', 'background', 'flower_good', 'lion_good'];
 var queue;
 var selectedTile;
 var level;
@@ -182,7 +182,7 @@ function loadComplete(event) {
     stage.addChild(menubar[i]);
   }
 
-  imgSuccess = new createjs.Bitmap(queue.getResult(28));
+  imgSuccess = new createjs.Bitmap(queue.getResult(29));
   imgSuccess.visible = false;
   stage.addChild(imgSuccess);
 
@@ -256,13 +256,13 @@ function resize() {
     return;
   }
   // Calculate the new tile size
-  // We want to fit 2 boxes of gridX tiles, and 1 for spacing.
-  ts = Math.floor(stage.canvas.width / (2*gridX+1));
+  // We want to fit 2 boxes of gridX tiles, and 2 for spacing.
+  ts = Math.floor(stage.canvas.width / (2*gridX+2));
   space = stage.canvas.width - 2*gridX*ts;
 
   // This depicts the spacing of the top boxes
-  margin = space / (1 + (1 + (gridX - 1) + 1) + 1 + (1 + (gridX - 1) + 1) + 1);
-  boxl.x = margin;
+  margin = space / (5 + (1 + (gridX - 1) + 1) + 1 + (1 + (gridX - 1) + 1) + 5);
+  boxl.x = 5*margin;
   boxl.y = margin;
   boxl.alpha = 0.5;
   boxl.graphics.clear();
@@ -273,7 +273,7 @@ function resize() {
   contl.y = boxl.y + margin;
   alignTiles(tilesl, ts, gridX*ts + (gridX-1)*margin);
 
-  boxr.x = gridX*ts + (gridX+3)*margin;
+  boxr.x = gridX*ts + (gridX+7)*margin;
   boxr.y = boxl.y;
   boxr.alpha = 0.5;
   boxr.graphics.clear();
@@ -384,6 +384,7 @@ function initLevel(newLevel=0) {
   }
 
   endGame = false;
+  imgSuccess.image = queue.getResult(29 + Math.floor(Math.random() * 2));
   imgSuccess.visible = false;
   if (selectedTile) {
     selectedTile.rotation = 0;
