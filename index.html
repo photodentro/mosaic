@@ -93,8 +93,6 @@ function imgByName(name) {
 }
 
 function queueFileLoad(event) {
-  console.log(event);
-
   resourcesLoaded++;
   statusText.text = "Φόρτωση " + parseInt(100*resourcesLoaded/resourceNames.length) + " %";
   stage.update();
@@ -108,7 +106,6 @@ function queueComplete(event) {
   statusText.visible = false;
   bg = new createjs.Bitmap(imgByName("background"));
   stage.addChild(bg);
-  console.log(bg);
 
   boxl = new createjs.Shape();
   stage.addChild(boxl);
@@ -199,7 +196,7 @@ function queueComplete(event) {
   statusText.textBaseline = "alphabetic";
   stage.setChildIndex(statusText, stage.numChildren - 1);
 
-  initLevel();
+  initLevel(0);
   window.addEventListener('resize', resize, false);
   createjs.Ticker.on("tick", tick);
   // createjs.Ticker.framerate = 10;
@@ -367,7 +364,7 @@ function tick() {
   stage.update();
 }
 
-function initLevel(newLevel=0) {
+function initLevel(newLevel) {
   // Internal level number is zero-based; but we display it as 1-based.
   // Levels:       0-1 2-3  4-5  6-7  8-9  10-11 12-13 14-15
   // Top layouts:  3x2 4x2  5x2  6x2  5x3   6x3   5x4   6x4
