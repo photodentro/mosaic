@@ -6,7 +6,7 @@
   <!-- Using this metatag users can't scale the page using pinchIn/out gestures on mobile devices -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
   <title>Αναγνώριση και αναπαραγωγή μοτίβου</title>  
-  <script src="https://code.createjs.com/1.0.0/createjs.min.js"></script>
+  <script src="https://code.createjs.com/1.0.0/easeljs.min.js"></script>
   <style type="text/css">
     /* Remove margins and HTML scrollbars */
     body, html  {
@@ -58,9 +58,13 @@ const ratio = 16/9;
 var ts;  // Tile Size; of course same for x and y (square pixels)
 var gridX, gridY;  // how many bitmaps in each top box
 var tilesNum;  // = gridX * gridY
+// To use .svg images, they must not have width or height="100%":
+// https://bugzilla.mozilla.org/show_bug.cgi?id=874811
+// Additionally, preloadjs currently doesn't work with .svg images.
 // Put the tiles first so that we can get them by index more easily
-var resources = ['aquarela_colors', 'giraffe', 'pencil', 'mouse_on_cheese', 'mushroom_house', 'pencils_paper', 'pencils', 'white_cake', 'die_1', 'die_2', 'die_3', 'die_4', 'die_5', 'die_6', 'die_7', 'die_0',  'digital_die1', 'digital_die2', 'digital_die3', 'digital_die4', 'digital_die5', 'digital_die6', 'digital_die7', 'digital_die0', 'bar_help', 'bar_home', 'bar_previous', 'bar_next', 'background', 'flower_good', 'lion_good'];
-var queue;
+var resourceNames = ['aquarela_colors', 'giraffe', 'pencil', 'mouse_on_cheese', 'mushroom_house', 'pencils_paper', 'pencils', 'white_cake', 'die_1', 'die_2', 'die_3', 'die_4', 'die_5', 'die_6', 'die_7', 'die_0',  'digital_die1', 'digital_die2', 'digital_die3', 'digital_die4', 'digital_die5', 'digital_die6', 'digital_die7', 'digital_die0', 'bar_help', 'bar_home', 'bar_previous', 'bar_next', 'background', 'flower_good', 'lion_good'];
+var resources = [];
+var resourcesLoaded = 0;
 var selectedTile;
 var level;
 var endGame = false;
@@ -76,41 +80,35 @@ function init() {
   resize();
 
   // Resource preloading
-  manifest = []
-  for (var i = 0; i < resources.length; i++)
-    manifest.push({ id: i, src: "resource/" + resources[i] + ".png" })
-  // The default preferXHR is true, but it prohibits things from being loaded:
-  // 1) In servers with Content-Security-Policy headers, and
-  // 2) In file:// URLs with google-chrome.
-  // Well actually chrome needs --allow-file-access-from-files in all cases.
-  queue = new createjs.LoadQueue(preferXHR=false);
-  queue.stopOnError = true;
-  queue.on("progress", loadProgress);
-  queue.on("error", loadError);
-  queue.on("complete", loadComplete);
-  queue.loadManifest(manifest);
-
-  // The rest of the initialization happens in loadComplete()
+  for (var i = 0; i < resourceNames.length; i++) {
+    resources[i] = new Image();
+    resources[i].src = "resource/" + resourceNames[i] + ".svg";
+    resources[i].onload = queueFileLoad;
+  }
+  // The last queueFileLoad calls queueComplete. Execution continues there.
 }
 
-function loadProgress(event) {
-  statusText.text = "Φόρτωση " + (queue.progress*100|0) + " %";
+function imgByName(name) {
+  return resources[resourceNames.indexOf(name)];
+}
+
+function queueFileLoad(event) {
+  console.log(event);
+
+  resourcesLoaded++;
+  statusText.text = "Φόρτωση " + parseInt(100*resourcesLoaded/resourceNames.length) + " %";
   stage.update();
-}
- 
-function loadError(evt) {
-  statusText.text = "Σφάλμα φόρτωσης, δοκιμάστε F5" + "\n" + evt.title + "\n" + (evt.message || evt.data.src);
-  stage.update();
-  console.log(statusText.text);
-  console.log(evt);
+  if (resourcesLoaded == resourceNames.length)
+    queueComplete(event);
 }
 
-function loadComplete(event) {
+function queueComplete(event) {
   console.log("Finished loading resources");
   // We only keep statusText for debugging; not visible in production builds
   statusText.visible = false;
-  bg = new createjs.Bitmap(queue.getResult("resource/background.png"));
+  bg = new createjs.Bitmap(imgByName("background"));
   stage.addChild(bg);
+  console.log(bg);
 
   boxl = new createjs.Shape();
   stage.addChild(boxl);
@@ -118,7 +116,7 @@ function loadComplete(event) {
   stage.addChild(contl);
   // We always initialize the max number of tiles = 24, and reuse them
   for (i = 0; i < 24; i++) {
-    tilesl[i] = new createjs.Bitmap(queue.getResult("resource/die_0.png"));
+    tilesl[i] = new createjs.Bitmap(imgByName("die_0"));
     tilesl[i].visible = false;
     contl.addChild(tilesl[i]);
   }
@@ -128,7 +126,7 @@ function loadComplete(event) {
   contr = new createjs.Container();
   stage.addChild(contr);
   for (i = 0; i < 24; i++) {
-    tilesr[i] = new createjs.Bitmap(queue.getResult("resource/die_0.png"));
+    tilesr[i] = new createjs.Bitmap(imgByName("die_0"));
     tilesr[i].visible = false;
     tilesr[i].addEventListener("click", function(event) {
   if (selectedTile) {
@@ -145,7 +143,7 @@ function loadComplete(event) {
   contb = new createjs.Container();
   stage.addChild(contb);
   for (i = 0; i < 24; i++) {
-    tilesb[i] = new createjs.Bitmap(queue.getResult("resource/die_0.png"));
+    tilesb[i] = new createjs.Bitmap(imgByName("die_0"));
     tilesb[i].visible = false;
     tilesb[i].addEventListener("click", function(event) {
   if (selectedTile)
@@ -170,7 +168,7 @@ function loadComplete(event) {
 
   var onMenuClick = [onMenuHelp, onMenuHome, onMenuPrevious, onMenuNext];
   for (i = 0; i < 4; i++) {
-    menubar[i] = new createjs.Bitmap(queue.getResult(24+i));
+    menubar[i] = new createjs.Bitmap(resources[24+i]);
     menubar[i].addEventListener("click", onMenuClick[i]);
     menubar[i].addEventListener("mouseover", function(event) {
   // Bring the target on top in its container, mostly for the rotation animation
@@ -192,7 +190,7 @@ function loadComplete(event) {
   lvlText.textBaseline = "middle";
   stage.addChild(lvlText);
 
-  imgSuccess = new createjs.Bitmap(queue.getResult(29));
+  imgSuccess = new createjs.Bitmap(resources[29]);
   imgSuccess.visible = false;
   stage.addChild(imgSuccess);
 
@@ -396,8 +394,8 @@ function initLevel(newLevel=0) {
   if (start + tilesNum > 24)
     start = 0;
   for (i = 0; i < tilesNum; i++) {
-     tilesb[i].image = queue.getResult(start + i);
-     tilesr[i].image = queue.getResult("resource/die_0.png");
+     tilesb[i].image = resources[start + i];
+     tilesr[i].image = imgByName("die_0");
      shuffle[i] = start + i;
   }
   for (i = 0; i < tilesNum; i++) {
@@ -407,11 +405,11 @@ function initLevel(newLevel=0) {
     shuffle[rand] = temp;
   }
   for (i = 0; i < tilesNum; i++) {
-     tilesl[i].image = queue.getResult(shuffle[i]);
+     tilesl[i].image = resources[shuffle[i]];
   }
 
   endGame = false;
-  imgSuccess.image = queue.getResult(29 + Math.floor(Math.random() * 2));
+  imgSuccess.image = resources[29 + Math.floor(Math.random() * 2)];
   imgSuccess.visible = false;
   if (selectedTile) {
     selectedTile.rotation = 0;
