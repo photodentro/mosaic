@@ -73,6 +73,8 @@ function init() {
   console.clear();
   stage = new createjs.Stage("mainCanvas");
   stage.enableMouseOver();
+  stage.snapToPixelEnabled = true;
+  createjs.Bitmap.prototype.snapToPixel = true;
   statusText = new createjs.Text("Φόρτωση...", "20px Arial", "white");
   statusText.textAlign = "center";
   statusText.textBaseline = "middle";
@@ -128,6 +130,7 @@ function queueComplete(event) {
     tilesr[i].addEventListener("click", function(event) {
   if (selectedTile) {
     event.target.image = selectedTile.image;
+    event.target.updateCache();
     checkEndGame();
     stage.update();
   }
@@ -199,6 +202,7 @@ function queueComplete(event) {
   initLevel(0);
   window.addEventListener('resize', resize, false);
   createjs.Ticker.on("tick", tick);
+  // createjs.Ticker.timingMode = createjs.Ticker.RAF;
   // createjs.Ticker.framerate = 10;
 }
 
@@ -239,6 +243,7 @@ function alignTiles(tilesA, tileW, boxW) {
     // These copies are used to preserve the original scale on mouseover
     tilesA[i].savedscaleX = tilesA[i].scaleX;
     tilesA[i].savedscaleY = tilesA[i].scaleY;
+    tilesA[i].cache(0, 0, tilesA[i].image.width, tilesA[i].image.height)
   }
 }
 
@@ -346,6 +351,7 @@ function resize() {
   // Fill all the canvas with the background
   bg.scaleX = stage.canvas.width / bg.image.width;
   bg.scaleY = stage.canvas.height / bg.image.height;
+  bg.cache(0, 0, bg.image.width, bg.image.height);
   
   stage.update();
 }
@@ -361,6 +367,7 @@ function tick() {
     if (Math.abs(selectedTile.rotation) > 10)
       dx = -dx;
   }
+  statusText.text = "Επίπεδο: " + (level + 1 ) + ", εικονίδια: " + tilesNum + ', fps: ' + Math.round(createjs.Ticker.getMeasuredFPS());
   stage.update();
 }
 
