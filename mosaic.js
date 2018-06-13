@@ -33,7 +33,6 @@ var tilesNum;  // = gridX * gridY
 var resourceNames = ['aquarela_colors', 'giraffe', 'pencil', 'mouse_on_cheese', 'mushroom_house', 'pencils_paper', 'pencils', 'white_cake', 'die_1', 'die_2', 'die_3', 'die_4', 'die_5', 'die_6', 'die_7', 'die_0',  'digital_die1', 'digital_die2', 'digital_die3', 'digital_die4', 'digital_die5', 'digital_die6', 'digital_die7', 'digital_die0', 'bar_home', 'bar_help', 'bar_about', 'bar_previous', 'bar_next', 'background', 'flower_good', 'lion_good'];
 var resources = [];
 var resourcesLoaded = 0;
-var selectedTile;
 var level;
 var endGame = false;
 
@@ -95,14 +94,6 @@ function queueComplete(event) {
   for (i = 0; i < 24; i++) {
     tilesr[i] = new createjs.Bitmap(imgByName("die_0"));
     tilesr[i].visible = false;
-    tilesr[i].addEventListener("click", function(event) {
-  if (selectedTile) {
-    event.target.image = selectedTile.image;
-    event.target.updateCache();
-    checkEndGame();
-    stage.update();
-  }
-});
     contr.addChild(tilesr[i]);
   }
 
@@ -113,22 +104,26 @@ function queueComplete(event) {
   for (i = 0; i < 24; i++) {
     tilesb[i] = new createjs.Bitmap(imgByName("die_0"));
     tilesb[i].visible = false;
-    tilesb[i].addEventListener("click", function(event) {
-  if (selectedTile)
-    selectedTile.rotation = 0;
-  selectedTile = event.target;
+    tilesb[i].addEventListener("pressmove", function(event) {
+  var pt = event.target.parent.globalToLocal(event.stageX, event.stageY);
+  event.target.x = pt.x;
+  event.target.y = pt.y;
   stage.update();
 });
-    tilesb[i].addEventListener("mouseover", function(event) {
-  // Bring the target on top in its container, mostly for the rotation animation
-  event.target.parent.setChildIndex(event.target, event.target.parent.numChildren - 1);
-  event.target.scaleX = 1.2*event.target.savedscaleX;
-  event.target.scaleY = 1.2*event.target.savedscaleY;
-  stage.update();
-});
-    tilesb[i].addEventListener("mouseout", function(event) {
-  event.target.scaleX = event.target.savedscaleX;
-  event.target.scaleY = event.target.savedscaleY;
+    tilesb[i].addEventListener("pressup", function(event) {
+  // Suppose we drop a pencil image somewhere in tilesr. If after that we want
+  // to drop another image over it, we don't want to check for "mouseover",
+  // because the pencil is thin. We want to test for a "square" mouseover.
+  var pt = boxr.globalToLocal(event.stageX, event.stageY);
+  for (i = 0; i < tilesNum; i++)
+    if ((Math.abs(pt.x - tilesr[i].x) <= ts/2)
+      && (Math.abs(pt.y - tilesr[i].y) <= ts/2)) {
+    tilesr[i].image = event.target.image;
+    tilesr[i].updateCache();
+    checkEndGame();
+  }
+  event.target.x = event.target.savedX;
+  event.target.y = event.target.savedY;
   stage.update();
 });
     contb.addChild(tilesb[i]);
@@ -179,7 +174,7 @@ function onMenuHome(event) {
 }
 
 function onMenuHelp(event) {
-  alert("Επιλέξτε εικόνες από το κάτω κουτί και βάλτε τις στο δεξί κουτί έτσι ώστε να ταιριάζουν με το αριστερό κουτί.");
+  alert("Τραβήξτε εικόνες από το κάτω κουτί στο δεξί κουτί έτσι ώστε να ταιριάζουν με το αριστερό κουτί.");
 }
 
 function onMenuAbout(event) {
@@ -212,6 +207,9 @@ function alignTiles(tilesA, tileW, boxW) {
     tilesA[i].regY = tilesA[i].image.height / 2;
     tilesA[i].x = (margin+tileW) * (i % tilesPerRow) + tilesA[i].scaleX*tilesA[i].regX;
     tilesA[i].y = (margin+tileW) * Math.floor(i / tilesPerRow) + tilesA[i].scaleY*tilesA[i].regY;
+    // These copies are used to preserve the initial coordinates on drag 'n' drop
+    tilesA[i].savedX = tilesA[i].x
+    tilesA[i].savedY = tilesA[i].y
     // These copies are used to preserve the original scale on mouseover
     tilesA[i].savedscaleX = tilesA[i].scaleX;
     tilesA[i].savedscaleY = tilesA[i].scaleY;
@@ -328,16 +326,10 @@ function resize() {
   stage.update();
 }
 
-dx = 5;
 function tick() {
   if (endGame) {
      imgSuccess.scaleX *= 1.01;
      imgSuccess.scaleY *= 1.01;
-  }
-  else if (selectedTile) {
-    selectedTile.rotation += dx;
-    if (Math.abs(selectedTile.rotation) > 10)
-      dx = -dx;
   }
   statusText.text = "Επίπεδο: " + (level + 1 ) + ", εικονίδια: " + tilesNum + ', fps: ' + Math.round(createjs.Ticker.getMeasuredFPS());
   stage.update();
@@ -387,10 +379,6 @@ function initLevel(newLevel) {
   endGame = false;
   imgSuccess.image = resources[resourceNames.indexOf("flower_good") + Math.floor(Math.random() * 2)];
   imgSuccess.visible = false;
-  if (selectedTile) {
-    selectedTile.rotation = 0;
-    selectedTile = null;
-  }
   resize();
 }
 
