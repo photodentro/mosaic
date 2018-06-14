@@ -40,6 +40,7 @@ function init() {
   console.clear();
   stage = new createjs.Stage("mainCanvas");
   stage.enableMouseOver();
+  createjs.Touch.enable(stage);
   stage.snapToPixelEnabled = true;
   createjs.Bitmap.prototype.snapToPixel = true;
   statusText = new createjs.Text("Φόρτωση...", "20px Arial", "white");
