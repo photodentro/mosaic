@@ -249,7 +249,7 @@ function resize() {
   boxl.graphics.clear();
   boxl.graphics.beginStroke("#000");
   boxl.graphics.setStrokeStyle(1);
-  boxl.graphics.beginFill("DarkTurquoise").drawRoundRect(0, 0, gridX*ts + (gridX+1)*margin, gridY*ts + (gridY+1)*margin, margin);
+  boxl.graphics.beginFill("#a0a0ff").drawRoundRect(0, 0, gridX*ts + (gridX+1)*margin, gridY*ts + (gridY+1)*margin, margin);
   contl.x = boxl.x + margin;
   contl.y = boxl.y + margin;
   alignTiles(tilesl, ts, gridX*ts + (gridX-1)*margin);
@@ -260,7 +260,7 @@ function resize() {
   boxr.graphics.clear();
   boxr.graphics.beginStroke("#000");
   boxr.graphics.setStrokeStyle(1);
-  boxr.graphics.beginFill("OrangeRed").drawRoundRect(0, 0, gridX*ts + (gridX+1)*margin, gridY*ts + (gridY+1)*margin, margin);
+  boxr.graphics.beginFill("#a0a0ff").drawRoundRect(0, 0, gridX*ts + (gridX+1)*margin, gridY*ts + (gridY+1)*margin, margin);
   contr.x = boxr.x + margin;
   contr.y = boxr.y + margin;
   alignTiles(tilesr, ts, gridX*ts + (gridX-1)*margin);
@@ -271,7 +271,7 @@ function resize() {
   boxb.graphics.clear();
   boxb.graphics.beginStroke("#000");
   boxb.graphics.setStrokeStyle(1);
-  boxb.graphics.beginFill("DeepSkyBlue").drawRoundRect(0, 0, 2*gridX*ts + (2*gridX+3)*margin, (Math.floor(1+(tilesNum-1)/12))*ts + (Math.floor(2+(tilesNum-1)/12))*margin, margin);
+  boxb.graphics.beginFill("#a0ffa0").drawRoundRect(0, 0, 2*gridX*ts + (2*gridX+3)*margin, (Math.floor(1+(tilesNum-1)/12))*ts + (Math.floor(2+(tilesNum-1)/12))*margin, margin);
   contb.x = boxb.x + margin;
   contb.y = boxb.y + margin;
   alignTiles(tilesb, ts, 2*gridX*ts + (2*gridX+1)*margin);
@@ -323,7 +323,7 @@ function resize() {
   bg.scaleX = stage.canvas.width / bg.image.width;
   bg.scaleY = stage.canvas.height / bg.image.height;
   bg.cache(0, 0, bg.image.width, bg.image.height);
-  
+
   stage.update();
 }
 

@@ -1,3 +1,13 @@
+Copyright: 2018 Georgios Piskopanis
+License: CC BY-NC-SA 4.0
+Files:
+background.svg
+bar_about.svg
+bar_help.svg
+bar_home.svg
+bar_next.svg
+bar_previous.svg
+
 Copyright: nicubunu, 2007
 License: Public domain
 Files:
@@ -37,7 +47,6 @@ pencils.svg
 Copyright: 2000, 2008 Bruno Coudoin and others
 License: GPLv3
 Files:
-background.svg
 die_0.svg
 die_1.svg
 die_2.svg
