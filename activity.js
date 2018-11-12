@@ -36,6 +36,8 @@ var resourcesLoaded = 0;
 var level;
 var endGame = false;
 
+window.onload = init;
+
 function init() {
   console.clear();
   stage = new createjs.Stage("mainCanvas");
@@ -63,6 +65,14 @@ function imgByName(name) {
 }
 
 function queueFileLoad(event) {
+  // Edge needs the images to be cached before they're used
+  if (resourcesLoaded === 0) {
+    bg = new createjs.Bitmap(event.target);
+    bg.cache();
+  } else {
+    bg.image = event.target;
+    bg.updateCache();
+  }
   resourcesLoaded++;
   statusText.text = "Φόρτωση " + parseInt(100*resourcesLoaded/resourceNames.length) + " %";
   stage.update();
