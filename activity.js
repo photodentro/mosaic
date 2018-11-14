@@ -30,7 +30,7 @@ var tilesNum;  // = gridX * gridY
 // https://bugzilla.mozilla.org/show_bug.cgi?id=874811
 // Additionally, preloadjs currently doesn't work with .svg images.
 // Put the tiles first so that we can get them by index more easily
-var resourceNames = ['aquarela_colors', 'giraffe', 'pencil', 'mouse_on_cheese', 'mushroom_house', 'pencils_paper', 'pencils', 'white_cake', 'die_1', 'die_2', 'die_3', 'die_4', 'die_5', 'die_6', 'die_7', 'die_0',  'digital_die1', 'digital_die2', 'digital_die3', 'digital_die4', 'digital_die5', 'digital_die6', 'digital_die7', 'digital_die0', 'bar_home', 'bar_help', 'bar_about', 'bar_previous', 'bar_next', 'background', 'flower_good', 'lion_good'];
+var resourceNames = ['aquarela_colors', 'giraffe', 'pencil', 'mouse_on_cheese', 'mushroom_house', 'pencils_paper', 'pencils', 'white_cake', 'die_1', 'die_2', 'die_3', 'die_4', 'die_5', 'die_6', 'die_7', 'die_0',  'digital_die1', 'digital_die2', 'digital_die3', 'digital_die4', 'digital_die5', 'digital_die6', 'digital_die7', 'digital_die0', 'bar_home', 'bar_help', 'bar_about', 'bar_fullscreen', 'bar_previous', 'bar_next', 'background', 'flower_good', 'lion_good'];
 var resources = [];
 var resourcesLoaded = 0;
 var level;
@@ -140,8 +140,9 @@ function queueComplete(event) {
     contb.addChild(tilesb[i]);
   }
 
-  var onMenuClick = [onMenuHome, onMenuHelp, onMenuAbout, onMenuPrevious, onMenuNext];
-  for (i = 0; i < 5; i++) {
+  var onMenuClick = [onMenuHome, onMenuHelp, onMenuAbout, onMenuFullscreen,
+    onMenuPrevious, onMenuNext];
+  for (i = 0; i < 6; i++) {
     menubar[i] = new createjs.Bitmap(resources[resourceNames.indexOf("bar_home") + i]);
     menubar[i].addEventListener("click", onMenuClick[i]);
     menubar[i].addEventListener("mouseover", function(event) {
@@ -190,6 +191,23 @@ function onMenuHelp(event) {
 
 function onMenuAbout(event) {
   window.open("credits/index_DS_II.html");
+}
+
+function onMenuFullscreen(event) {
+  var doc = window.document;
+  var docEl = doc.documentElement;
+
+  var requestFullScreen = docEl.requestFullscreen || docEl.mozRequestFullScreen
+    || docEl.webkitRequestFullScreen || docEl.msRequestFullscreen;
+  var cancelFullScreen = doc.exitFullscreen || doc.mozCancelFullScreen
+    || doc.webkitExitFullscreen || doc.msExitFullscreen;
+
+  if (!doc.fullscreenElement && !doc.mozFullScreenElement
+    && !doc.webkitFullscreenElement && !doc.msFullscreenElement) {
+    requestFullScreen.call(docEl);
+  } else {
+    cancelFullScreen.call(doc);
+  }
 }
 
 function onMenuPrevious(event) {
@@ -287,11 +305,11 @@ function resize() {
   alignTiles(tilesb, ts, 2*gridX*ts + (2*gridX+1)*margin);
 
   var bbs = stage.canvas.height / 10;  // bar button size
-  var bbm = bbs / 5;  // bar button margin
+  var bbm = bbs / 4;  // bar button margin
   // TODO: local/global variables, eslint...
-  for (i = 0; i < 5; i++) {
+  for (i = 0; i < 6; i++) {
     // Leave one space for the level
-    if (i < 4)
+    if (i < 5)
       j = i;
     else
       j = i + 1;
@@ -307,14 +325,14 @@ function resize() {
   }
 
   lvlText.text = level + 1;
-  lvlText.x = (4 + 1)*bbm + bbs/2 + 4*bbs;
+  lvlText.x = (5 + 1)*bbm + bbs/2 + 5*bbs;
   lvlText.y = stage.canvas.height - bbm/2 - bbs/2;
   lvlText.font = parseInt(2*bbs/2) + "px Arial";
 
   // If level is single digit, move lvlText and bar_previous a bit left
   if (level + 1 < 10) {
     lvlText.x -= bbs/4;
-    menubar[4].x -= bbs/2;
+    menubar[5].x -= bbs/2;
   }
 
   imgSuccess.scaleY = (2/3) * stage.canvas.height / imgSuccess.image.height;
