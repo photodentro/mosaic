@@ -1,4 +1,4 @@
-Copyright: 2018 Georgios Piskopanis
+Copyright: 2018 Georgios Piskopanis, Artemis Georgopoulou
 License: CC BY-NC-SA 4.0
 Files:
 background.svg
