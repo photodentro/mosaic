@@ -1,8 +1,9 @@
-Copyright: 2018 Georgios Piskopanis, Artemis Georgopoulou
+Copyright: 2018 Artemis Georgopoulou, Georgios Piskopanis
 License: CC BY-NC-SA 4.0
 Files:
 background.svg
 bar_about.svg
+bar_fullscreen.svg
 bar_help.svg
 bar_home.svg
 bar_next.svg
