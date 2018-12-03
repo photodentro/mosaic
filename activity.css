@@ -50,7 +50,7 @@ body {
 /* IE doesn't support @supports, so declare its style in the initial rule.
  Edge claims to support space-evenly but it doesn't, use space-around:
  https://developer.microsoft.com/en-us/microsoft-edge/platform/issues/15947692/
- Finally, old android webviews don't support space-evely at all.
+ Finally, old android webviews don't support space-evenly at all.
 */
 @supports (align-content: space-evenly) and (not (-ms-ime-align: auto)) {
   #main {
@@ -109,12 +109,10 @@ body {
 
 @-webkit-keyframes menubar_animation {
   from { opacity: 0; }
-  to { opacity: 1; }
 }
 
 @keyframes menubar_animation {
   from { opacity: 0; }
-  to { opacity: 1; }
 }
 
 #menubar {
