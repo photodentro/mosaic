@@ -316,8 +316,8 @@ function initLevel(newLevel) {
   }
   shufa = shuffledArray(act.tilesNum, false);
   for (i = 0; i < act.tilesNum; i += 1) {
-    act.original[i].src = sformat('resource/p{}.svg', shufa[i]);
-    act.original[i].$ord = shufa[i];
+    act.original[i].src = sformat('resource/p{}.svg', start + shufa[i]);
+    act.original[i].$ord = start + shufa[i];
   }
   ge('level').innerHTML = act.level + 1;
 }
